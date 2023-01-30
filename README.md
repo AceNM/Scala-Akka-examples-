@@ -1,23 +1,23 @@
 # Scala-Akka-examples-
 These codes are partial solutions to the multiple writers multiple files problem in parallel programming using Scala and Akka
-4 SOLUTIONS
-The solutions are implemented in Scala1 version 2.13.1. The Library used for implementing actors is Akka2, and the IDE was IntelliJ IDEA 2019.3.1 (Ultimate Edition). Other technical specifications of the platform used for running the codes are: Runtime version: 11.0.5+10-b520.17 x86_64
+SOLUTIONS
+The solutions are implemented in Scala version 2.13.1. The Library used for implementing actors is Akka, and the IDE was IntelliJ IDEA 2019.3.1 (Ultimate Edition). Other technical specifications of the platform used for running the codes are: Runtime version: 11.0.5+10-b520.17 x86_64
 VM: OpenJDK 64-Bit Server VM by JetBrains s.r.o OS: macOS 10.15.2
 GC: ParNew, ConcurrentMarkSweep
 Memory: 1981M
 Cores: 8
 Solving the file server problem has two main part: first,
 how to assign a file server to the client, and after that, how to handle file interactions. Regarding that, two sets of codes have been implemented which use different approaches to solve these sub-problems. The first solution, which in this paper is called Dynamic File Servers, is using dynamic file servers and allocates the file interaction handling mostly by the operating system. The second solution, called by the name of File Actors, is using fix number of file servers and actor files to handle file interactions. The following subsec- tions will explain each of these solutions in detail.
+
 Dynamic file servers
-The Scala codes for this solution are in a file by the name of “DynamicFileServersAndClients.scala” in the same directory as this paper’s PDF. Dynamic File Servers uses three sets
-1https://www.scala-lang.org 2 https://akka.io
+The Scala codes for this solution are in a file by the name of “DynamicFileServersAndClients.scala” in the same directory as this paper’s PDF. Dynamic File Servers uses three sets. 
 of actors to solve the problem, Client, FileServerManager, and FileServer.
 The behaviour of the Clients is pretty the same in both approaches; therefore, it is going to be described just once in this section. Every Client tries to interact with the randomly chosen file multiple times. The number of read and write interactions is determined by a normal distribution generator using this line of code:
 Math.round(Random.nextGaussian() * standardDeviation + mean).toInt
-The client tries to acquire a file server by sending a ServerReq message to the only FileServerManager actor. Then by acquir- ing a FileServer, Client tries to open a chosen file by sending an Open message to the assigned FileServer. By receiving OpenReply message, Client starts to accessing the file by pre- determined number of READs and WRITEs. When all READ and WRITE Access messages are sent and its associated AccessReply messages are received, by sending a CLOSE Access message Client closes the file. After receiving the its answer Client will free the FileServer through sending an FreeFileServer to the FileServerManager. Figure 1 helps to understand the interactions between the Client and the File better.
-Figure 1: Message passing timeline in Dynamic File Servers solution
+The client tries to acquire a file server by sending a ServerReq message to the only FileServerManager actor. Then by acquiring a FileServer, Client tries to open a chosen file by sending an Open message to the assigned FileServer. By receiving OpenReply message, Client starts to accessing the file by pre- determined number of READs and WRITEs. When all READ and WRITE Access messages are sent and its associated AccessReply messages are received, by sending a CLOSE Access message Client closes the file. After receiving the its answer Client will free the FileServer through sending an FreeFileServer to the FileServerManager. Figure 1 helps to understand the interactions between the Client and the File 
 Once FileServerManager, which is the only actor of its kind, receives a ServerReq message, it immediately creates a FileServer and passes it to the Client by sending its Actor- Ref to the requester. By receiving a FreeFileServer message, FileServerManager stops the FileServer and ends its lifespan.
 After being created by the FileServerManager, FileServer first receives the name of the File that it should interact on behalf of the Client, which it has been assigned to, and it opens the File and informs the Client. Then it receives multi- ple READ and WRITE Access messages and acts accordingly. When all the interactions are done by receiving a CLOSE Access, closing the File and sending its answer back, File- Server lifespan is put to an end by emphFileServerManager.
+
 File Actors
 Similar to the previous solution, The Scala codes for this solution are in a file by the name of “/FileServersClientsFile- Actors.scala” in the same directory as this paper’s PDF. This solution uses one more set of actors compare to the previous solution. FileActors are those in charge of direct interaction with Files. Some of the other actors have different behaviors and one is similar.
 Clients in this solution show the same behavior as the previous one. Except instead of requesting to interact with a File, it tries to interact with a FileActor. However, others do not have that level of similarity. FileServerManager, un- like dynamic file server solution, uses a constant number of FileServers. When a Client request for acquiring a file server, if available, FileServerManager assigns a FileServer to the Client and if not, the request will be queued until a FileServer becomes available.
